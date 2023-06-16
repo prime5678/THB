@@ -1,4 +1,5 @@
 #goal: write a program that can take in a .txt file and convert it to csv or otherwise format it properly
+import pandas as pd
 def txtFormatterTHB(f): #make sure that f is located in the same directory as this file
     assert type(f) == str #ensures that the argument that is passed into this function is a txt file or string
     name = []
@@ -44,13 +45,15 @@ def txtFormatterTHB(f): #make sure that f is located in the same directory as th
         "17": sdg17
     }
     #dictionary that will hold a reference to all of the lists to make it easier to append values
+    columns = ["Name", "Ticker", "Weight in Index", "Equity", "Description", "SDG1", "SDG2", "SDG3", "SDG4", "SDG5", "SDG6", "SDG7", "SDG8", "SDG9", "SDG10", "SDG11", "SDG12", "SDG13", "SDG14", "SDG15", "SDG16", "SDG17"]
+    dictionary2 = {}
     with open(f) as reader:
+        firstLine = reader.readline()
         while reader.readable():
-            firstLine = reader.readline()
             if firstLine.isspace():
                 print("")
-            while(firstLine[0].isalpha()):
-                print(firstLine)
+                firstLine = reader.readline()
+            elif(firstLine[0].isalpha()):
                 p = firstLine[firstLine.index('.') - 1:]
                 stat = float(p[:p.index("\t")])
                 n = firstLine[:firstLine.index('0') - 1]
@@ -66,39 +69,34 @@ def txtFormatterTHB(f): #make sure that f is located in the same directory as th
                 statistic.append(stat)
                 equity.append(eq)
                 bio.append(description)
-                print(n, abbreviation, stat, eq, description)
                 #above code: takes in the string corresponding to a company with the initial information, then takes required information (name, bio, ticker, weight in index) and sorts that info
                 #figure out a way to read n lines corresponding to the company and then store the information appropriately
                 firstLine = reader.readline()
-                lst = []
-                lst1 = []
-                dictionary2 = {}
-                while(firstLine.__contains__(n) or firstLine[0].isnumeric() or firstLine.isspace()):
-                    if(firstLine[0].isnumeric()):
-                        if(firstLine.__contains__('SDG')):
-                            val = int(firstLine[firstLine.index('SDG') + 4 :firstLine.index(':')])
-                            if(firstLine.__contains__('exposure)')):
-                                fL = firstLine[firstLine.index("-") + 2:]
-                            else:
-                                fL = firstLine[firstLine.index('-') + 2:]
-                                fl1 = reader.readline()
-                                fL += " - " + fl1
-                        else:
-                            val = int(firstLine[:firstLine.index('.')])
-                            fL = firstLine[firstLine.index('-') + 2:]
-                        lst.append(val)
-                        lst1.append(fL)
-                        dictionary2.update({val : fL})
-                    elif(firstLine.isspace()):
+                while(reader.readable()):
+                    if(firstLine.isspace()):
                         print("")
+                    elif(firstLine[0].isnumeric()):
+                        val = firstLine[firstLine.index("G") + 2:firstLine.index(":")]
+                        temp = firstLine[firstLine.index("-") + 2: -1]
+                        temp2 = reader.readline()
+                        fL = temp + " - " + temp2
+                        dictionary2.update({val:fL})
+                    else:
+                        firstLine = reader.readline()
+                        break
                     firstLine = reader.readline()
+                    if(len(firstLine) == 0):
+                        break
                 for x in range(1, 18):
-                    if x in dictionary2.keys():
-                        dictionary.get(str(x)).append(dictionary2.get(x))
+                    if str(x) in dictionary2.keys():
+                        dictionary.get(str(x)).append(dictionary2.get(str(x)))
                     else:
                         dictionary.get(str(x)).append("N/A")
-                for x in range(1, 18):
-                    print(dictionary.get(str(x)))
-    return 1
+                if(len(firstLine) == 0):
+                    break
+    df = pd.DataFrame(list(zip(name,  ticker, statistic, equity, bio, sdg1, sdg2, sdg3, sdg4, sdg5, sdg6, sdg7, sdg8, sdg9, sdg10, sdg11, sdg12, sdg13, sdg14, sdg15, sdg16, sdg17)), columns = columns)
+    df.to_excel('export.xlsx')
+    return None
 
-print(txtFormatterTHB('MSCI World All Company ESG Exposure.txt'))
+#remember to close export.xlsx otherwise it will an error (as the program is attempting to write to an open file)
+txtFormatterTHB('msciSample.txt')

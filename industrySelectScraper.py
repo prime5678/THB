@@ -34,30 +34,37 @@ def webPageParser(link):
     lst = lst[1:-1]
     titles = titles[:-1]
     lst2 = []
-    for x in zip(titles, lst):
-        lst2.append(x[1])
+    for x in list(zip(titles, lst)):
+        lst2.append(x[0] + "\n" + x[1])
     #above code extracts the text from the webpage and sorts the titles and corresponding paragraphs into a single list over which we can iterate and use methods to filter out specific information we need
-    #let's try to find a way for the program to recognize/distinguish between the features of company name, state, and jobs that will be created
+    #let's try to find a way for the program to recognize/distinguish between the features of COMPANY NAME, STATE, and JOBS CREATED
     #ideas: try using NLP or LLMs for retrieval
     #idea 1: NLP in Python
-    for x in lst2:
-        templst = []
-        for sent in nltk.sent_tokenize(x):
-            for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
-                if hasattr(chunk, 'label'):
-                    templst.append(chunk.label() + " " + ' '.join(c[0] for c in chunk))
-        print(templst)
-        lstGPE = [s[4:] for s in templst if "GPE" in s]
-        lstPERSON = [s for s in templst if "PERSON" in s or "ORGANIZATION" in s]
-        if len(lstGPE) == 1:
-            state.append(lstGPE[0])
-        else:
-            p = [g for g in lstGPE if g in listOfStates]
-            state.append(p[0])
-        for q in range(len(lstPERSON)):
-            if "PERSON" in lstPERSON[q]:
-                lstPERSON[q] = lstPERSON[q][len("PERSON") + 1:]
+    statesWithAbbreviations = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"]
+    keys = listOfStates + statesWithAbbreviations
+    vals = listOfStates + listOfStates
+    labeledStates = dict(zip(keys, vals))
+    #created the list of potential inputs then put them into a dictionary that will centralize all potential inputs into a more finite set
+    def whichState(text):
+        p = {}
+        for x in labeledStates.keys():
+            if x in text and x not in p.keys():
+                p.update({x: text.count(x)})
+        g = {}
+        for x in p.keys():
+            if labeledStates.get(x) in g.keys():
+                g.update({labeledStates.get(x): g.get(labeledStates.get(x)) + p.get(x)})
             else:
-                lstPERSON[q] = lstPERSON[q][len("ORGANIZATION") + 1:]
-
-webPageParser("https://www.industryselect.com/blog/new-us-manufacturing-plants-announced-may-2023")
+                g.update({labeledStates.get(x): p.get(x)})
+        df = pd.DataFrame({
+            'states': g.keys(),
+            'count': g.values()
+        })
+        df_sorted = df.sort_values(by='count', ascending=False)
+        df_sorted_and_filtered = df.loc[df_sorted['count'] == df_sorted['count'].max()]
+        return list(df_sorted_and_filtered['states'])
+    #helper function which returns a list of state(s) that are most common in the original text, which in most cases implies the correct state that we are looking for
+    for x in lst2:
+        state.append(whichState(x))
+    print(state)
+webPageParser("https://www.industryselect.com/blog/new-us-manufacturing-companies-unveiled-may-2022")
